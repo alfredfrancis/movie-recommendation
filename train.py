@@ -1,6 +1,24 @@
+import logging
 import torch
+
 from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments
 from datasets import load_dataset
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+device_name = "cpu"
+if torch.cuda.is_available():
+    device_name = "cuda"
+elif torch.backends.mps.is_available():
+    device_name = "mps"
+
+device = torch.device(device_name)
+
+logger.info(f"Using device: {device_name}")
 
 # Load dataset
 dataset = load_dataset("imdb")
@@ -18,7 +36,7 @@ tokenized_dataset = dataset.map(tokenize, batched=True)
 tokenized_dataset.set_format("torch", columns=["input_ids", "attention_mask", "label"])
 
 # Load model
-model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2)
+model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2).to(device)
 
 # Training args
 training_args = TrainingArguments(

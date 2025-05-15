@@ -18,6 +18,16 @@ logger = logging.getLogger(__name__)
 model = None
 tokenizer = None
 
+device_name = "cpu"
+if torch.cuda.is_available():
+    device_name = "cuda"
+elif torch.backends.mps.is_available():
+    device_name = "mps"
+
+logger.info(f"Using device: {device_name}")
+
+device = torch.device(device_name)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model, tokenizer
@@ -30,12 +40,7 @@ async def lifespan(app: FastAPI):
         model = BertForSequenceClassification.from_pretrained("./bert-imdb")
         tokenizer = BertTokenizer.from_pretrained("./bert-imdb")
         model.eval() 
-        
-        if torch.cuda.is_available():
-            model = model.cuda()
-            logger.info("Model loaded on GPU")
-        else:
-            logger.info("Model loaded on CPU")
+        model.to(device)
             
         logger.info(f"Model loaded in {time.time() - start_time:.2f} seconds")
     except Exception as e:
@@ -74,15 +79,12 @@ class BatchSentimentRequest(BaseModel):
 class SentimentResponse(BaseModel):
     sentiment: str
     confidence: float
-    processing_time: float
 
 class BatchSentimentResponse(BaseModel):
     results: List[Dict[str, Any]]
     processing_time: float
 
 def predict_sentiment_with_score(text):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
     inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
     inputs = {k: v.to(device) for k, v in inputs.items()}
     
