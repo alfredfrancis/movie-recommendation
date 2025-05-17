@@ -23,7 +23,7 @@ docker build -t sentiment-analysis-api .
 To run the container with GPU support:
 
 ```bash
-docker run --gpus all -p 9005:9005 sentiment-analysis-api
+docker run --rm --runtime=nvidia --gpus all -p 9005:9005 sentiment-analysis-api
 ```
 
 ### Without GPU (CPU only)
